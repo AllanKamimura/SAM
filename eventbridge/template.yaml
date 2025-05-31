@@ -1,0 +1,42 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: EventBridge template
+
+Globals:
+  Function:
+    Timeout: 5
+    CodeUri: src/
+    Runtime: python3.12
+
+Resources:
+  MyBus:
+    Type: AWS::Events::EventBus
+
+    Properties:
+      Name: MyBus
+
+  EndpointFunction:
+    Type: AWS::Serverless::Function
+
+    Properties:
+      Handler: endpoint.lambda_handler
+      Policies:
+        - EventBridgePutEventsPolicy:
+            EventBusName: !Ref MyBus
+
+      Environment:
+        Variables:
+          EVENT_BUS_NAME: !Ref MyBus
+
+      Events:
+        API:
+          Type: HttpApi
+
+          Properties:
+            Path: /
+            Method: POST
+
+Outputs:
+  APIUrl:
+    Description: "HTTP API endpoint URL"
+    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com"
