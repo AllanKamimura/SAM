@@ -8,6 +8,11 @@ Globals:
     CodeUri: src/
     Runtime: python3.12
 
+Parameters:
+  EndpointSourceName:
+    Type: String
+    Default: "EndpointFunction"
+
 Resources:
   MyBus:
     Type: AWS::Events::EventBus
@@ -27,6 +32,7 @@ Resources:
       Environment:
         Variables:
           EVENT_BUS_NAME: !Ref MyBus
+          EVENT_SOURCE_NAME: !Ref EndpointSourceName
 
       Events:
         API:
@@ -35,6 +41,50 @@ Resources:
           Properties:
             Path: /
             Method: POST
+
+  TranslateFunction:
+    Type: AWS::Serverless::Function
+
+    Properties:
+      Handler: translate.lambda_handler
+      Policies:
+        - ComprehendBasicAccessPolicy: {}
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - "translate:TranslateText"
+              Resource: "*"
+
+      Events:
+        TranslateFilter:
+          Type: EventBridgeRule
+          Properties:
+            EventBusName: !Ref MyBus
+            Pattern:
+              source:
+                - !Ref EndpointSourceName
+              detail-type:
+                - "translate"
+
+  SentimentFunction:
+    Type: AWS::Serverless::Function
+
+    Properties:
+      Handler: sentiment.lambda_handler
+      Policies:
+        - ComprehendBasicAccessPolicy: {}
+
+      Events:
+        SentimentFilter:
+          Type: EventBridgeRule
+          Properties:
+            EventBusName: !Ref MyBus
+            Pattern:
+              source:
+                - !Ref EndpointSourceName
+              detail-type:
+                - "sentiment"
 
 Outputs:
   APIUrl:

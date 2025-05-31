@@ -15,6 +15,18 @@ def lambda_handler(event, context):
     logger.info("Received event: %s", json.dumps(event))
 
     try:
+        # Get environment variable
+        EVENT_BUS_NAME = os.getenv("EVENT_BUS_NAME")
+        EVENT_SOURCE_NAME = os.getenv("EVENT_SOURCE_NAME")
+
+        if not EVENT_BUS_NAME:
+            logger.error("Missing EVENT_BUS_NAME environment variable")
+            raise EnvironmentError("EVENT_BUS_NAME environment variable not set")
+
+        if not EVENT_SOURCE_NAME:
+            logger.error("Missing EVENT_SOURCE_NAME environment variable")
+            raise EnvironmentError("EVENT_SOURCE_NAME environment variable not set")
+
         # Parse request body
         request_data = json.loads(event.get("body", "{}"))
         logger.info("Parsed request data: %s", request_data)
@@ -29,20 +41,14 @@ def lambda_handler(event, context):
             logger.error(error_msg)
             raise ValueError(error_msg)
 
-        # Get environment variable
-        event_bus_name = os.getenv("EVENT_BUS_NAME")
-        if not event_bus_name:
-            logger.error("Missing EVENT_BUS_NAME environment variable")
-            raise EnvironmentError("EVENT_BUS_NAME environment variable not set")
-
         # Prepare EventBridge event
         params = {
             "Entries": [
                 {
                     "Detail": json.dumps(request_data),
                     "DetailType": request_data["type"],
-                    "Source": "TextEndpoint",
-                    "EventBusName": event_bus_name,
+                    "Source": EVENT_SOURCE_NAME,
+                    "EventBusName": EVENT_BUS_NAME,
                 }
             ]
         }
